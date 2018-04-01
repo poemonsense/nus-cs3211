@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>TEST of simple GPU/CPU system</title>
+
+</head>
+<body>
+
+<script src="js/gpuv0.js?nocache"></script>
+<script src="js/decls.js?nocache"></script>
+
+<input type="button" value="Using CPU" onclick="return change(this);" />
+<input type="button" value="Filtering" onclick="return changeFilter(this);" />
+
+<div id="fps"></div>
+
+<video hidden id="video" width="800" height="600"></video>
+<canvas hidden id="videoCanvas" width="800" height="600"></canvas>
+
+<script src="ui.js?nocache"></script>
+<script src="kerneldefsv0.js?nocache"></script>
+
+<script>
+
+var canvas, video, width, height, context;
+var copyVideo=false;
+var canvasReady=false;
+var arr=[];
+var imageData;
+var firsttimevid = true;
+
+function draw() {
+    if (copyVideo) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        imageData = context.getImageData(0, 0, 800, 600);
+        if (firsttimevid === true ) {
+            for (var channel=0; channel<4; channel++) {
+                arr.push([]);
+                for (var y=0; y<600; y++) {
+                    arr[channel].push([]);
+                }
+            }
+        }
+        firsttimevid = false;
+        // instead of accessing arr[0],arr[1],arr[2]
+        for (var i=0; i<3; i++) {
+            var pointer = i;
+            for (var y=599; y>=0; y--) {
+                for (var x=0; x<800; x++) {
+                    arr[i][y][x] = imageData.data[pointer]/256;
+                    pointer += 4;
+                }
+            }
+        }
+        canvasReady=true;
+    }
+    requestAnimationFrame(draw);
+}
+
+navigator.getUserMedia = (
+    navigator.getUserMedia ||
+    navigator.webkitGetUserMedia ||
+    navigator.mozGetUserMedia ||
+    navigator.msGetUserMedia
+);
+
+function initialize() {
+    video = document.getElementById("video");
+    width = video.width;
+    height = video.height;
+
+    canvas = document.getElementById("videoCanvas");
+    context = canvas.getContext('2d');
+
+    video.addEventListener("playing", function() {
+       console.log("Started");
+       copyVideo = true;
+    }, true);
+
+    if (typeof navigator.mediaDevices.getUserMedia === 'undefined') {
+        navigator.getUserMedia({video: true}, streamHandler, errorHandler);
+    } else {
+        navigator.mediaDevices.getUserMedia({video: true}).then(streamHandler).catch(errorHandler);
+    }
+}
+
+var myKernelImg = makeImg("gpu");
+var animIndex = 0;
+var canvas = myKernelImg.getCanvas();
+document.getElementsByTagName('body')[0].appendChild(canvas);
+
+var f = document.querySelector("#fps");
+
+var demos = [makeFilter("cpu"), makeFilter("gpu")];
+var gauss = [gaussian_blur("cpu"), gaussian_blur("gpu")];
+var pixelate = [pixelated("cpu"), pixelated("gpu")];
+var redu_size = [reduce_size("cpu"), reduce_size("gpu")];
+var enl_size = [enlarge("cpu"), enlarge("gpu")];
+var sobels = [sobel("cpu",[200,150]), sobel("gpu",[200,150])];
+var line_dect_mask1 = [line_detector_mask1("cpu"), line_detector_mask1("gpu")];
+var line_dect_mask2 = [line_detector_mask2("cpu"), line_detector_mask2("gpu")];
+var grayscale = [gray_filter("cpu", [800,600]), gray_filter("gpu", [800,600])];
+var gauss_small = [gaussian_blur_1d("cpu",[200,150]),gaussian_blur_1d("gpu",[200,150])];
+var gauss_1d = [gaussian_blur_1d("cpu",[800,600]),gaussian_blur_1d("gpu",[800,600])];
+var sobels_big = [sobel("cpu",[800,600]), sobel("gpu",[800,600,3])];
+var sharpens = [sharpen("cpu"), sharpen("gpu")];
+
+function renderLoop() {
+    f.innerHTML = fps.getFPS();
+    if ( canvasReady === true ) {
+        var X;
+        if (filtering === 0) {
+            X = demos[selection](arr);
+        } else if (filtering === 1) {
+            X = gauss[selection](arr);
+        } else if (filtering === 2) {
+            X = pixelate[selection](arr);
+        } else if (filtering === 3) {
+            X = sharpens[selection](arr);
+        } else if (filtering === 4) {
+            var a = grayscale[selection](arr);
+            var b = gauss_1d[selection](a); 
+            var c = sobels_big[selection](b);
+            if (selection === 0) {
+                X = [c,c,c];
+            }
+            else {
+                X = c;
+            }
+        } else if (filtering === 5) {
+            // line detector
+            // 1: grayscale and reduce its zie
+            var a = grayscale[selection](arr);
+            var b = redu_size[selection](a);
+            // 2: gaussian blur. makes it smooth
+            var c = gauss_small[selection](b);
+            // 3: sobel operator for edge detection
+            var d = sobels[selection](c);
+            // 4: use hough transform to do line detection
+            var e = line_dect_mask1[selection](d, cos_val, sin_val);
+            var g = line_dect_mask2[selection](c, e, cos_val, sin_val);
+            // 5: mask the original image with lines detected
+            X = enl_size[selection](g);
+        } else {
+            X = arr;
+        }
+        var E = toimg(X);
+    } else {
+        console.log("video not ready yet");
+    }
+    // setTimeout(renderLoop,1);            // Uncomment this line, and comment the next line
+    requestAnimationFrame(renderLoop);     // to see how fast this could run...
+}
+
+window.onload = renderLoop;
+
+function streamHandler(stream) {
+    video.src = URL.createObjectURL(stream);
+    video.play();
+    console.log("In startStream");
+    requestAnimationFrame(draw);
+}
+
+addEventListener("DOMContentLoaded", initialize);
+
+</script>
+
+</body>
+</html>

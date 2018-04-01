@@ -1,0 +1,101 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "spec.h"
+#include "pfile.h"
+
+int read_spec_from_file(const char *filename, Spec *spec) {
+    FILE *spec_file = fopen(filename, "r");
+    if (!spec_file) {
+        fprintf(stderr, "[%s:%d] Cannot open specfile %s\n", __FILE__, __LINE__, filename);
+        return -1;
+    }
+    // buffer for reading every line of the file 
+    char buf[MAX_SPECFILE_LINE_SIZE];
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    spec->cs.time_slot = atoi(buf + TIME_SLOT_OFFSET);
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    spec->cs.time_step = atof(buf + TIME_STEP_OFFSET);
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    spec->cs.horizon = atoi(buf + HORIZON_OFFSET);
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    spec->gs.size = atoi(buf + GRID_SIZE_OFFSET);
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    spec->gs.small_num = atoi(buf + SMALL_PTC_NUM_OFFSET);
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    spec->gs.small_mass = atof(buf + SMALL_PTC_MASS_OFFSET);
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    spec->gs.small_rad = atof(buf + SAMLL_PTC_RAD_OFFSET);
+    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    spec->gs.large_num = atoi(buf + LARGE_PTC_NUM_OFFSET);
+    spec->gs.large_ptc = (Particle *)calloc(spec->gs.large_num, sizeof(Particle));
+    for (int i = 0; i < spec->gs.large_num; i++) {
+        fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+        sscanf(buf, "%f %f %f %f", &spec->gs.large_ptc[i].rad, &spec->gs.large_ptc[i].mass, 
+                &spec->gs.large_ptc[i].loc.x, &spec->gs.large_ptc[i].loc.y);
+    }
+
+    #ifdef PFILE_DEBUG
+    __debug_print_spec(spec);
+    #endif
+
+    return 0;
+}
+
+int print2ppm(const Pool *pool, const char *path) {
+    FILE *ppm_file = fopen(path, "w");
+    if (!ppm_file) {
+        fprintf(stderr, "[%s:%d] Cannot open ppmfile %s\n", __FILE__, __LINE__, path);
+        return -1;
+    }
+    uint32_t entry_num = pool->size * pool->size;
+    // compute R channel
+    uint8_t *red = (uint8_t *)calloc(entry_num, sizeof(uint8_t));
+    memset(red, 0, entry_num * sizeof(uint8_t));
+    for (uint32_t i = 0, num = pool->small_num; i < num; i++) {
+        uint32_t col = (uint32_t)pool->small_ptc[i].x;
+        uint32_t row = (uint32_t)pool->small_ptc[i].y;
+        uint32_t pos = pool->size * row + col;
+        if (red[pos] != 255)
+            red[pos]++;
+    }
+    // compute B channel
+    uint8_t *blue = (uint8_t *)calloc(entry_num, sizeof(uint8_t));
+    memset(blue, 0, entry_num * sizeof(uint8_t));
+    for (uint32_t i = 0, num = pool->large_num; i < num; i++) {
+        uint32_t xrange[2] = {
+            (uint32_t)(pool->large_ptc[i].loc.x - pool->large_ptc[i].rad),
+            (uint32_t)(pool->large_ptc[i].loc.x + pool->large_ptc[i].rad)
+        };
+        uint32_t yrange[2] = {
+            (uint32_t)(pool->large_ptc[i].loc.y - pool->large_ptc[i].rad),
+            (uint32_t)(pool->large_ptc[i].loc.y + pool->large_ptc[i].rad)
+        };
+        for (uint32_t row = yrange[0]; row <= yrange[1]; row++) {
+            for (uint32_t col = xrange[0]; col <= xrange[1]; col++) {
+                float dis = (row - pool->large_ptc[i].loc.y) * (row - pool->large_ptc[i].loc.y)
+                    + (col - pool->large_ptc[i].loc.x) * (col - pool->large_ptc[i].loc.x);
+                if (dis <= pool->large_ptc[i].rad)
+                    blue[row * pool->size + col] = 255;
+            }
+        }
+    }
+    // write to ppm file
+    fprintf(ppm_file, "P3\n");
+    fprintf(ppm_file, "%d %d\n", pool->size, pool->size);
+    fprintf(ppm_file, "255\n");
+    for (uint32_t row = 0; row < pool->size; row++) {
+        for (uint32_t col = 0; col < pool->size; col++) {
+            uint32_t idx = row * pool->size + col;
+            if (blue[idx])
+                fprintf(ppm_file, "%d %d %d\t", 0, 0, blue[idx]);
+            else
+                fprintf(ppm_file, "%d %d %d\t", red[idx], 0, blue[idx]);
+        }
+        fprintf(ppm_file, "\n");
+    }
+    fclose(ppm_file);
+    return 0;
+}
