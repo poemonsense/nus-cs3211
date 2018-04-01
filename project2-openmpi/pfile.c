@@ -36,11 +36,9 @@ int read_spec_from_file(const char *filename, Spec *spec) {
         sscanf(buf, "%f %f %f %f", &spec->gs.large_ptc[i].rad, &spec->gs.large_ptc[i].mass, 
                 &spec->gs.large_ptc[i].loc.x, &spec->gs.large_ptc[i].loc.y);
     }
-
     #ifdef PFILE_DEBUG
     __debug_print_spec(spec);
     #endif
-
     return 0;
 }
 
