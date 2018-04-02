@@ -17,7 +17,7 @@ typedef struct {
     Particle *large_ptc;
 } Pool;
 
-static const int POOL_COUNT = 3;
+static const int POOL_COUNT = 5;
 static const int POOL_BLOCK_LENGTH[] = {1, 1, 1, 1, 1, 1};
 static const MPI_Aint POOL_DISPLACE[] = {
     offsetof(Pool, size),
@@ -35,5 +35,9 @@ int run(int rank, int size, int argc, char *argv[]);
 void init_pool(int rank, const Spec *spec);
 int init_params(int rank, int argc, char *argv[], Spec *spec);
 
+/**
+ * print Pool to STDOUT (only for debug use)
+ */
+void __debug_print_pool(int rank, const Pool *pool);
 
 #endif

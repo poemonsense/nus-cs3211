@@ -1,7 +1,7 @@
 #ifndef PFILE_H
 #define PFILE_H
 
-// #define PFILE_DEBUG
+#define PFILE_DEBUG
 
 #include "spec.h"
 #include "pool.h"

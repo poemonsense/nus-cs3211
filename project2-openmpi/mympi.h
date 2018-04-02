@@ -5,6 +5,8 @@
 
 extern MPI_Datatype CompSpecType;
 extern MPI_Datatype PoolType;
+extern MPI_Datatype LocationType;
+extern MPI_Datatype ParticleType;
 
 int init_mympi();
 

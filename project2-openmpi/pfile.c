@@ -37,7 +37,7 @@ int read_spec_from_file(const char *filename, Spec *spec) {
                 &spec->gs.large_ptc[i].loc.x, &spec->gs.large_ptc[i].loc.y);
     }
     #ifdef PFILE_DEBUG
-    __debug_print_spec(spec);
+    __debug_print_spec(-1, spec);
     #endif
     return 0;
 }
