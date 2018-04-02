@@ -10,7 +10,18 @@ extern MPI_Datatype ParticleType;
 
 int init_mympi();
 
-#define mympi_bcast(buf, count, datatype, root, comm) \
-    MPI_Bcast(buf, count, datatype, root, comm);
+#define mympi_bcast(buf, count, datatype, root) \
+    MPI_Bcast(buf, count, datatype, root, MPI_COMM_WORLD);
+
+#define mympi_isend(buf, count, datatype, dest, tag, request) \
+    MPI_Isend(buf, count, datatype, dest, tag, MPI_COMM_WORLD, request)
+
+#define mympi_irecv(buf, count, datatype, source, tag, request) \
+    MPI_Irecv(buf, count, datatype, source, tag, MPI_COMM_WORLD, request)
+
+#define mympi_waitall(count, array_of_requests, array_of_statuses) \
+    MPI_Waitall(count, array_of_requests, array_of_statuses)
+
+#define mympi_wait(request, status) MPI_Wait(request, status)
 
 #endif

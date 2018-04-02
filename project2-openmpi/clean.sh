@@ -1,1 +1,4 @@
-rm log*.txt *.ppm *.bmp pool
+rm logs -r
+rm pool
+rm bmpresults -r
+rm ppmresults -r

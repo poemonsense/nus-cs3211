@@ -4,6 +4,7 @@
 
 #include "spec.h"
 #include "pfile.h"
+#include "logging.h"
 
 int read_spec_from_file(const char *filename, Spec *spec) {
     FILE *spec_file = fopen(filename, "r");
@@ -20,7 +21,6 @@ int read_spec_from_file(const char *filename, Spec *spec) {
     fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
     spec->cs.horizon = atoi(buf + HORIZON_OFFSET);
     fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
     spec->gs.size = atoi(buf + GRID_SIZE_OFFSET);
     fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
     spec->gs.small_num = atoi(buf + SMALL_PTC_NUM_OFFSET);
@@ -33,7 +33,7 @@ int read_spec_from_file(const char *filename, Spec *spec) {
     spec->gs.large_ptc = (Particle *)calloc(spec->gs.large_num, sizeof(Particle));
     for (int i = 0; i < spec->gs.large_num; i++) {
         fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
-        sscanf(buf, "%f %f %f %f", &spec->gs.large_ptc[i].rad, &spec->gs.large_ptc[i].mass, 
+        sscanf(buf, "%lf %lf %lf %lf", &spec->gs.large_ptc[i].rad, &spec->gs.large_ptc[i].mass, 
                 &spec->gs.large_ptc[i].loc.x, &spec->gs.large_ptc[i].loc.y);
     }
     #ifdef PFILE_DEBUG
@@ -43,6 +43,9 @@ int read_spec_from_file(const char *filename, Spec *spec) {
 }
 
 int print2ppm(const Pool *pool, const char *path) {
+    #ifdef PFILE_DEBUG
+    INFO("Writing Pool at 0x%lx to ppm file %s", (uint64_t)pool, path)
+    #endif
     FILE *ppm_file = fopen(path, "w");
     if (!ppm_file) {
         fprintf(stderr, "[%s:%d] Cannot open ppmfile %s\n", __FILE__, __LINE__, path);
@@ -73,7 +76,7 @@ int print2ppm(const Pool *pool, const char *path) {
         };
         for (uint32_t row = yrange[0]; row <= yrange[1]; row++) {
             for (uint32_t col = xrange[0]; col <= xrange[1]; col++) {
-                float dis = (row - pool->large_ptc[i].loc.y) * (row - pool->large_ptc[i].loc.y)
+                double dis = (row - pool->large_ptc[i].loc.y) * (row - pool->large_ptc[i].loc.y)
                     + (col - pool->large_ptc[i].loc.x) * (col - pool->large_ptc[i].loc.x);
                 if (dis <= pool->large_ptc[i].rad)
                     blue[row * pool->size + col] = 255;
@@ -94,6 +97,8 @@ int print2ppm(const Pool *pool, const char *path) {
         }
         fprintf(ppm_file, "\n");
     }
+    free(red);
+    free(blue);
     fclose(ppm_file);
     return 0;
 }

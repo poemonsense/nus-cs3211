@@ -5,15 +5,15 @@
 #include <stddef.h>
 #include "mpi.h"
 
-typedef float Radius;
-typedef float Mass;
+typedef double Radius;
+typedef double Mass;
 
 /**
  * Define the location of a particle on the board
  */
 typedef struct {
-    float x;
-    float y;
+    double x;
+    double y;
 } Location;
 
 /**
@@ -26,7 +26,7 @@ static const MPI_Aint LOCATION_DISPLACE[] = {
     offsetof(Location, y)
 };
 static const MPI_Datatype LOCATION_ELEM_TYPES[] = {
-    MPI_FLOAT, MPI_FLOAT
+    MPI_DOUBLE, MPI_DOUBLE
 };
 
 /**
@@ -50,7 +50,7 @@ static const MPI_Aint PARTICLE_DISPLACE[] = {
     offsetof(Particle, loc) + offsetof(Location, y)
 };
 static const MPI_Datatype PARTICLE_ELEM_TYPES[] = {
-    MPI_FLOAT, MPI_FLOAT, MPI_FLOAT, MPI_FLOAT
+    MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE
 };
 
 /**
@@ -69,9 +69,9 @@ typedef struct {
  * Define the specification for the computation
  */
 typedef struct {
-    int      time_slot;
-    float    time_step;
-    int      horizon;
+    int   time_slot;
+    float time_step;
+    int   horizon;
 } CompSpec;
 
 /**

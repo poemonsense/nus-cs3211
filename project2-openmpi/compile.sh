@@ -1,1 +1,1 @@
-mpicc -o pool pool.c pfile.c spec.c mympi.c logging.c --std=c99 -Wall -lpthread
+mpicc -o pool pool.c pfile.c spec.c mympi.c logging.c --std=c99 -Wall -lpthread -lm
