@@ -1,7 +1,7 @@
 #ifndef POOL_H
 #define POOL_H
 
-#define POOL_DEBUG
+// #define POOL_DEBUG
 
 #include <stdint.h>
 #include "spec.h"
@@ -41,7 +41,7 @@ typedef struct {
 } Accel;
 
 /**
- * Macro for computing the acceleration
+ * Macro for computing the acceleration (acc1 and acc2)
  * Not final result since G constant has not been applied
  * Need to ensure that no name crashes in the local scope
  * 
@@ -49,7 +49,7 @@ typedef struct {
  * mass1, mass2: double
  * acc1, acc2: Accel
  */
-#define COMPUTE_ACCEL_RAW(vec, mass1, mass2, acc1, acc2) {    \
+/* #define COMPUTE_ACCEL_2PTC_RAW(vec, mass1, mass2, acc1, acc2) {    \
     double __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
     double __accel_dist = sqrt(__accel_dist_sqr);             \
     double __accel_den = __accel_dist * __accel_dist_sqr;     \
@@ -59,9 +59,48 @@ typedef struct {
     acc1.ay += __accel_const_1 * vec.y;                       \
     acc2.ax -= __accel_const_2 * vec.x;                       \
     acc2.ay -= __accel_const_2 * vec.y;                       \
+    } */
+
+#define COMPUTE_ACCEL_2PTC_RAW(vec, mass1, mass2, acc1, acc2) {    \
+    double __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
+    double __accel_const_1 = mass2 / __accel_dist_sqr;        \
+    double __accel_const_2 = mass1 / __accel_dist_sqr;        \
+    acc1.ax += __accel_const_1 * vec.x;                       \
+    acc1.ay += __accel_const_1 * vec.y;                       \
+    acc2.ax -= __accel_const_2 * vec.x;                       \
+    acc2.ay -= __accel_const_2 * vec.y;                       \
     }
 
-#define __ACCEL_G_CONSTANT 6.67 //0.000000000066742
+/**
+ * Macro for computing the acceleration that ptc2 put on ptc1
+ * Not final result since G constant has not been applied
+ * Need to ensure that no name crashes in the local scope
+ * 
+ * vec: Location
+ * mass1, mass2: double
+ * acc1, acc2: Accel
+ */
+/* #define COMPUTE_ACCEL_RAW(vec, mass2, acc1) {    \
+    double __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
+    double __accel_dist = sqrt(__accel_dist_sqr);             \
+    double __accel_den = __accel_dist * __accel_dist_sqr;     \
+    double __accel_const_1 = mass2 / __accel_den;             \
+    acc1.ax += __accel_const_1 * vec.x;                       \
+    acc1.ay += __accel_const_1 * vec.y;                       \
+    } */
+
+#define COMPUTE_ACCEL_RAW(vec, mass2, acc1) {    \
+    double __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
+    double __accel_const_1 = mass2 / __accel_dist_sqr;        \
+    acc1.ax += __accel_const_1 * vec.x;                       \
+    acc1.ay += __accel_const_1 * vec.y;                       \
+    }
+
+/**
+ * Gravatational constant for acceleration computation
+ * To make the effect more notable, use 6.67 instead of 6.67*(10^-11)
+ */
+#define __ACCEL_G_CONSTANT 66.7 //0.000000000066742
 
 #define ACCEL_RAW_TO_FINAL(acc) {  \
     acc.ax *= __ACCEL_G_CONSTANT;  \

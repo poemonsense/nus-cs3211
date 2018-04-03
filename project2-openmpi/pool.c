@@ -110,34 +110,43 @@ int run_step(int rank, int size) {
     // communicate with adjacent regions to send and receive data
     // use asynchronous communication primitives to avoid dead-locks
     // get number of small and large particles in adjacent regions
+    #ifdef POOL_DEBUG
     INFO("Sending and receiving small_num and large_num, size: MPI_UINT32_T");
+    #endif
     MPI_Request num_send_req[2][adj_num], num_recv_req[2][adj_num];
     uint32_t snum[adj_num], lnum[adj_num];
     for (int i = 0; i < adj_num; i++) {
-        mympi_isend(&pool.small_num, 1, MPI_UINT32_T, adj_ranks[i], 0,
+        printf("Process %d: Communicate with %d\n", rank, adj_ranks[i]);
+        mympi_isend(&pool.small_num, 1, MPI_UINT32_T, adj_ranks[i], 2*rank,
             &num_send_req[0][i]);
-        mympi_isend(&pool.large_num, 1, MPI_UINT32_T, adj_ranks[i], 1,
+        mympi_isend(&pool.large_num, 1, MPI_UINT32_T, adj_ranks[i], 2*rank+1,
             &num_send_req[1][i]);
-        mympi_irecv(&snum[i], 1, MPI_UINT32_T, adj_ranks[i], 0,
+        mympi_irecv(&snum[i], 1, MPI_UINT32_T, adj_ranks[i], 2*adj_ranks[i],
             &num_recv_req[0][i]);
-        mympi_irecv(&lnum[i], 1, MPI_UINT32_T, adj_ranks[i], 1,
+        mympi_irecv(&lnum[i], 1, MPI_UINT32_T, adj_ranks[i], 2*adj_ranks[i]+1,
             &num_recv_req[1][i]);
     }
     Location *adj_small_ptc[adj_num];
     Particle *adj_large_ptc[adj_num];
     // allocate space for accelaration here
+    #ifdef POOL_DEBUG
     INFO("Allocating space for accelaration");
+    #endif
     Accel *small_acc = (Accel *)calloc(pool.small_num, sizeof(Accel));
     Accel *large_acc = (Accel *)calloc(pool.large_num, sizeof(Accel));
     memset(large_acc, 0, pool.large_num * sizeof(Accel));
     memset(small_acc, 0, pool.small_num * sizeof(Accel));
     // TODO: compare communication time between waitall and wait
     // assume waitall is faster since only 32bits transferred
+    #ifdef POOL_DEBUG
     INFO("Wait for array of small_num and large_num to be received");
+    #endif
     mympi_waitall(adj_num, num_recv_req[0], MPI_STATUSES_IGNORE);
     mympi_waitall(adj_num, num_recv_req[1], MPI_STATUSES_IGNORE);
-    INFO("Received array of small_num and large_num");
     for (int i = 0; i < adj_num; i++) {
+        #ifdef POOL_DEBUG
+        INFO("snum[%d] = %d, snum[%d] = %d", i, snum[i], i, lnum[i]);
+        #endif
         // mympi_wait(&num_recv_req[0][i], MPI_STATUS_IGNORE);
         adj_small_ptc[i] = (Location *)calloc(snum[i], sizeof(Location));
         // mympi_wait(&num_recv_req[1][i], MPI_STATUS_IGNORE);
@@ -154,16 +163,18 @@ int run_step(int rank, int size) {
     MPI_Request ptc_send_req[2][adj_num], ptc_recv_req[2][adj_num];
     for (int i = 0; i < adj_num; i++) {
         mympi_isend(pool.small_ptc, pool.small_num, LocationType,
-            adj_ranks[i], MPI_ANY_TAG, &ptc_send_req[0][i]);
+            adj_ranks[i], 2*rank, &ptc_send_req[0][i]);
         mympi_isend(pool.large_ptc, pool.large_num, ParticleType,
-            adj_ranks[i], MPI_ANY_TAG, &ptc_send_req[1][i]);
+            adj_ranks[i], 2*rank+1, &ptc_send_req[1][i]);
         mympi_irecv(adj_small_ptc[i], snum[i], LocationType, adj_ranks[i],
-            MPI_ANY_TAG, &ptc_recv_req[0][i]);
+            2*adj_ranks[i], &ptc_recv_req[0][i]);
         mympi_irecv(adj_large_ptc[i], lnum[i], ParticleType, adj_ranks[i],
-            MPI_ANY_TAG, &ptc_recv_req[1][i]);
+            2*adj_ranks[i]+1, &ptc_recv_req[1][i]);
     }
     // compute impacts of the region itself and wait for communication to finish
-    INFO("Computing the impacts of the region itself")
+    #ifdef POOL_DEBUG
+    INFO("Computing the impacts of the region %d itself", rank)
+    #endif
     // only compute F(i, j) sice F(j, i) = -F(i, j)
     for (int i = 0; i < pool.small_num; i++) {
         // forces between small particles
@@ -173,7 +184,7 @@ int run_step(int rank, int size) {
                 pool.small_ptc[j].x - pool.small_ptc[i].x,
                 pool.small_ptc[j].y - pool.small_ptc[i].y
             };
-            COMPUTE_ACCEL_RAW(r_ji, pool.small_mass, pool.small_mass,
+            COMPUTE_ACCEL_2PTC_RAW(r_ji, pool.small_mass, pool.small_mass,
                 small_acc[i], small_acc[j])
         }
         // forces between larger particles and small particles
@@ -182,7 +193,7 @@ int run_step(int rank, int size) {
                 pool.large_ptc[j].loc.x - pool.small_ptc[i].x,
                 pool.large_ptc[j].loc.y - pool.small_ptc[i].y
             };
-            COMPUTE_ACCEL_RAW(r_ji, pool.small_mass, pool.large_ptc[j].mass,
+            COMPUTE_ACCEL_2PTC_RAW(r_ji, pool.small_mass, pool.large_ptc[j].mass,
                 small_acc[i], large_acc[j])
         }
     }
@@ -192,49 +203,112 @@ int run_step(int rank, int size) {
                 pool.large_ptc[j].loc.x - pool.large_ptc[i].loc.x,
                 pool.large_ptc[j].loc.y - pool.large_ptc[i].loc.y
             };
-            COMPUTE_ACCEL_RAW(r_ji, pool.large_ptc[i].mass, pool.large_ptc[j].mass,
+            COMPUTE_ACCEL_2PTC_RAW(r_ji, pool.large_ptc[i].mass, pool.large_ptc[j].mass,
                 large_acc[i], large_acc[j])
         }
     }
-    // compute large ones first since there should be fewer large particles
-    // which take less time to communicate
+    // compute the impacts of adjacent regions
     for (int i = 0; i < adj_num; i++) {
-
+        // compute the offset of two adjacent regions
+        double offset[2] = {
+            ((adj_ranks[i] % proc_size) - (rank % proc_size)) * (double)pool.size,
+            ((adj_ranks[i] / proc_size) - (rank / proc_size)) * (double)pool.size            
+        };
+        #ifdef POOL_DEBUG
+        INFO("compute region %d's impact, offset = { %.4f, %.4f }",
+            adj_ranks[i], offset[0], offset[1])
+        #endif
+        // compute adj_large_ptc[i][j]'s impact
+        // compute large ones first since there should be fewer large particles
+        // which take less time to communicate
+        mympi_wait(&ptc_recv_req[1][i], MPI_STATUS_IGNORE);
+        for (int j = 0; j < lnum[i]; j++) {
+            #ifdef POOL_DEBUG
+            INFO("Process %d large_ptc[%d].loc: %.4f, %.4f", adj_ranks[i],
+                j, adj_large_ptc[i][j].loc.x, adj_large_ptc[i][j].loc.y)
+            #endif
+            for (int k = 0; k < pool.small_num; k++) {
+                // compute adj_large_ptc[i][j]'s impact on pool.small_ptc[k]
+                Location r_kj = {
+                    adj_large_ptc[i][j].loc.x - pool.small_ptc[k].x + offset[0],
+                    adj_large_ptc[i][j].loc.y - pool.small_ptc[k].y + offset[1]
+                };
+                COMPUTE_ACCEL_RAW(r_kj, adj_large_ptc[i][j].mass, small_acc[k])
+            }
+            for (int k = 0; k < pool.large_num; k++) {
+                // compute adj_large_ptc[i][j]'s impact on pool.large_ptc[k]                
+                Location r_kj = {
+                    adj_large_ptc[i][j].loc.x - pool.large_ptc[k].loc.x + offset[0],
+                    adj_large_ptc[i][j].loc.y - pool.large_ptc[k].loc.y + offset[1]
+                };
+                COMPUTE_ACCEL_RAW(r_kj, adj_large_ptc[i][j].mass, large_acc[k])
+            }
+        }
+        // compute adj_small_ptc[i][j]'s impact
+        mympi_wait(&ptc_recv_req[0][i], MPI_STATUS_IGNORE);
+        for (int j = 0; j < snum[i]; j++) {
+            #ifdef POOL_DEBUG
+            if (j < 10)
+            INFO("Process %d small_ptc[%d]: %.4f, %.4f", adj_ranks[i],
+                j, adj_small_ptc[i][j].x, adj_small_ptc[i][j].x)
+            #endif
+            for (int k = 0; k < pool.small_num; k++) {
+                // compute adj_small_ptc[i][j]'s impact on pool.small_ptc[k]
+                Location r_kj = {
+                    adj_small_ptc[i][j].x - pool.small_ptc[k].x + offset[0],
+                    adj_small_ptc[i][j].y - pool.small_ptc[k].y + offset[1]
+                };
+                COMPUTE_ACCEL_RAW(r_kj, pool.small_mass, small_acc[k])
+            }
+            for (int k = 0; k < pool.large_num; k++) {
+                // compute adj_small_ptc[i][j]'s impact on pool.large_ptc[k]
+                Location r_kj = {
+                    adj_small_ptc[i][j].x - pool.large_ptc[k].loc.x + offset[0],
+                    adj_small_ptc[i][j].y - pool.large_ptc[k].loc.y + offset[1]
+                };
+                COMPUTE_ACCEL_RAW(r_kj, pool.small_mass, large_acc[k])
+            }
+        }
     }
     // free the ptc space for other regions
     for (int i = 0; i < adj_num; i++) {
         free(adj_small_ptc[i]);
         free(adj_large_ptc[i]);
     }
+    #ifdef POOL_DEBUG
     INFO("Apply G constant to Acceleration")
+    #endif
     for (int i = 0; i < pool.small_num; i++)
         ACCEL_RAW_TO_FINAL(small_acc[i])
     for (int i = 0; i < pool.large_num; i++)
         ACCEL_RAW_TO_FINAL(large_acc[i])
     #ifdef POOL_DEBUG
+    for (int i = 0; i < 10; i++) {
+        INFO("small_acc[%d]: %.4f, %.4f", i, small_acc[i].ax, small_acc[i].ay);        
+    }
     for (int i = 0; i < pool.large_num; i++) {
-        INFO("large_acc[i]: %.4f, %.4f", large_acc[i].ax, large_acc[i].ay);
+        INFO("large_acc[%d]: %.4f, %.4f", i, large_acc[i].ax, large_acc[i].ay);
     }
     #endif
     // now we are going to update the velocity and location
     double t = cs.time_step;
-    INFO("Update velocity using vt = v0 + a * t")
+    INFO("Update velocity using vt = v0 + a * %.4f", t)
     for (int i = 0; i < pool.small_num; i++) {
         small_vel[i].vx += small_acc[i].ax * t;
         small_vel[i].vy += small_acc[i].ay * t;
-        #ifdef POOL_DEBUG
-        if (i < 10) {
-            INFO("small_vel[i]: %.4f, %.4f", small_vel[i].vx, small_vel[i].vy);
-        }
-        #endif
     }
     for (int i = 0; i < pool.large_num; i++) {
         large_vel[i].vx += large_acc[i].ax * t;
         large_vel[i].vy += large_acc[i].ay * t;
-        #ifdef POOL_DEBUG
-        INFO("large_vel[i]: %.4f, %.4f", large_vel[i].vx, large_vel[i].vy);
-        #endif
     }
+    #ifdef POOL_DEBUG
+    for (int i = 0; i < 10; i++) {
+        INFO("small_vel[%d]: %.4f, %.4f", i, small_vel[i].vx, small_vel[i].vy);        
+    }
+    for (int i = 0; i < pool.large_num; i++) {
+        INFO("large_vel[%d]: %.4f, %.4f", i, large_vel[i].vx, large_vel[i].vy);
+    }
+    #endif
     // need to ensure that particle information has been sent
     mympi_waitall(adj_num, ptc_send_req[0], MPI_STATUSES_IGNORE);
     mympi_waitall(adj_num, ptc_send_req[1], MPI_STATUSES_IGNORE);
@@ -276,6 +350,8 @@ int run_step(int rank, int size) {
     // free the allocated acc space
     free(small_acc);
     free(large_acc);
+    mympi_waitall(adj_num, num_send_req[0], MPI_STATUSES_IGNORE);
+    mympi_waitall(adj_num, num_send_req[1], MPI_STATUSES_IGNORE);
     return 0;
 }
 
@@ -287,15 +363,20 @@ int run(int rank, int size, int argc, char *argv[]) {
         return -1;
     }
     init_pool(rank, spec);
-    small_vel = (Velocity *)calloc(spec->gs.small_num, sizeof(Velocity));
-    large_vel = (Velocity *)calloc(spec->gs.large_num, sizeof(Velocity));
-    memset(small_vel, 0, spec->gs.small_num * sizeof(Velocity));
-    memset(large_vel, 0, spec->gs.large_num * sizeof(Velocity));
     // free the allocated space
-    // only in rank 0 have we initialized large_ptc in spec
+    // only in rank 0 have we initialized spec.gs in spec
     if (rank == 0)
         free(spec->gs.large_ptc);
     free(spec);
+    // allocate space for velocity
+    #ifdef POOL_DEBUG
+    INFO("Allocate small_vel and large_vel with size of %u, %u",
+        spec->gs.small_num, spec->gs.large_num)
+    #endif
+    small_vel = (Velocity *)calloc(pool.small_num, sizeof(Velocity));
+    large_vel = (Velocity *)calloc(pool.large_num, sizeof(Velocity));
+    memset(small_vel, 0, pool.small_num * sizeof(Velocity));
+    memset(large_vel, 0, pool.large_num * sizeof(Velocity));
     // now begins the main computation
     // set the adjacent regions that need to be considered
     int row = rank / proc_size, col = rank % proc_size;
@@ -342,7 +423,7 @@ int run(int rank, int size, int argc, char *argv[]) {
     return 0;
 }
 
-int is_perfect_square(int num) {
+int __is_perfect_square(int num) {
     int sqrt_rank = (int)round(sqrt((double)num));
     for (int i = 1; i <= sqrt_rank; i++)
         if (i * i == num)
@@ -357,7 +438,7 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     // ensures the number of processes is a perfect square
-    proc_size = is_perfect_square(size);
+    proc_size = __is_perfect_square(size);
     if (!proc_size) {
         fprintf(stderr, "The number of processes should be a perfect square\n");
         return EXIT_FAILURE;

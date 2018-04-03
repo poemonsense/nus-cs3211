@@ -13,6 +13,8 @@
 #include <pthread.h>
 #include "logging.h"
 
+#include "pool.h"
+
 static int loglevel = DEFAULT_LOG_LEVEL;
 static FILE *logfile = NULL;
 static const char *loglevel_str[] = {
@@ -41,6 +43,9 @@ void __LOG(int level, const char *func, int line, const char *format, ...)
     fprintf(logfile, "%s[%s:%d] ", loglevel_str[level], func, line);
     vfprintf(logfile, format, ap);
     fprintf(logfile, "\n");
+    #ifdef POOL_DEBUG
+    fflush(logfile);
+    #endif
     va_end(ap);
     pthread_mutex_unlock(&lock);
 }
