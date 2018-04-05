@@ -11,6 +11,7 @@ DEBUG = -D POOL_DEBUG
 DEBUG_DIR = dump
 
 PPMFILES = $(wildcard ppmresults/*.ppm)
+PPM2BMP = ppmtobmp
 BMPDIR = bmpresults
 
 all: pool
@@ -26,7 +27,9 @@ debug: $(HEADERS) $(SRCS)
 
 bmp: $(PPMFILES)
 	mkdir -p bmpresults
-	$(foreach file,$(PPMFILES), ppmtobmp "$(file)" > "bmpresults/$(basename $(notdir $(file))).bmp" &&) true
+ifeq ($(notdir $(shell which $(PPM2BMP))), $(PPM2BMP))
+	$(foreach file,$(PPMFILES), ppmtobmp "$(file)" > "bmpresults/$(basename $(notdir $(file))).bmp" &&) true	
+endif
 
 clean:
 	rm -f -r $(TARGET) $(DEBUG_DIR) $(RESULT_DIR) $(BMPDIR)
