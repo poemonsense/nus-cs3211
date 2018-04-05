@@ -30,6 +30,8 @@ int proc_size;
 /**********
  * Debug function definitions
  **********/
+#ifdef POOL_DEBUG
+
 void __debug_print_pool(int rank, const Pool *pool) {
     DEBUG("Process %d: Pool at address 0x%lx", rank, (uint64_t)pool);
     DEBUG("size:       %d", pool->size);
@@ -41,10 +43,11 @@ void __debug_print_pool(int rank, const Pool *pool) {
     DEBUG("large_ptc:  0x%lx", (uint64_t)pool->large_ptc);
 }
 
+#endif
+
 /**
  * Main purpose function definitions
  */
-
 void init_pool(int rank, const Spec *spec) {
     if (rank == 0) {
         pool.size = spec->gs.size;

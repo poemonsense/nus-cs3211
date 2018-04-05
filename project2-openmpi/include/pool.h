@@ -123,9 +123,19 @@ int run_step(int rank, int size);
 void init_pool(int rank, const Spec *spec);
 int init_params(int rank, int argc, char *argv[], Spec *spec);
 
+
+#ifdef POOL_DEBUG
+
+#include <assert.h>
+
 /**
  * print Pool to STDOUT (only for debug use)
  */
 void __debug_print_pool(int rank, const Pool *pool);
+
+#define __DEBUG_ASSERT(expr) \
+    assert(expr);
+
+#endif
 
 #endif

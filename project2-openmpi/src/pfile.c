@@ -66,14 +66,17 @@ int print2ppm(const Pool *pool, const char *path) {
     uint8_t *blue = (uint8_t *)calloc(entry_num, sizeof(uint8_t));
     memset(blue, 0, entry_num * sizeof(uint8_t));
     for (uint32_t i = 0, num = pool->large_num; i < num; i++) {
-        uint32_t xrange[2] = {
-            (uint32_t)(pool->large_ptc[i].loc.x - pool->large_ptc[i].rad),
-            (uint32_t)(pool->large_ptc[i].loc.x + pool->large_ptc[i].rad)
-        };
-        uint32_t yrange[2] = {
-            (uint32_t)(pool->large_ptc[i].loc.y - pool->large_ptc[i].rad),
-            (uint32_t)(pool->large_ptc[i].loc.y + pool->large_ptc[i].rad)
-        };
+        // in case that large ball has gone out of the region
+        uint32_t xrange[2] = { 0, pool->size - 1 };
+        if (pool->large_ptc[i].loc.x > pool->large_ptc[i].rad)
+            xrange[0] = (uint32_t)(pool->large_ptc[i].loc.x - pool->large_ptc[i].rad);
+        if (pool->large_ptc[i].loc.x + pool->large_ptc[i].rad < pool->size - 1)
+            xrange[1] = (uint32_t)(pool->large_ptc[i].loc.x + pool->large_ptc[i].rad);
+        uint32_t yrange[2] = { 0, pool->size - 1 };
+        if (pool->large_ptc[i].loc.y > pool->large_ptc[i].rad)
+            yrange[0] = (uint32_t)(pool->large_ptc[i].loc.y - pool->large_ptc[i].rad);
+        if (pool->large_ptc[i].loc.y + pool->large_ptc[i].rad < pool->size - 1)
+            yrange[1] = (uint32_t)(pool->large_ptc[i].loc.y + pool->large_ptc[i].rad);
         for (uint32_t row = yrange[0]; row <= yrange[1]; row++) {
             for (uint32_t col = xrange[0]; col <= xrange[1]; col++) {
                 double dis = (row - pool->large_ptc[i].loc.y) * (row - pool->large_ptc[i].loc.y)

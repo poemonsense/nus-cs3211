@@ -1,8 +1,6 @@
-echo "Cleaning..."
-./clean.sh
-mkdir ppmresults
-mkdir logs
-echo "Compiling..."
-./compile.sh
-echo "Running program..."
-mpirun --oversubscribe -np $1 ./pool initialspec.txt ppmresults/finalbrd
+#!/bin/bash
+set -x
+
+make clean && make "${@:2}"
+mpirun --oversubscribe --hostfile hostfile -np $1 ./pool spec.txt ppmresults/finalbrd
+make bmp
