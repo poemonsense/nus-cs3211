@@ -2,6 +2,8 @@
 #include <stdint.h>
 
 #include "spec.h"
+
+#ifdef POOL_DEBUG
 #include "logging.h"
 
 void __debug_print_spec(int rank, const Spec *spec) {
@@ -43,3 +45,5 @@ void __debug_print_particle(int rank, const Particle *ptc, uint32_t count) {
         DEBUG("Particle[%u].loc.y: %.4f", i, ptc[i].loc.y);        
     }
 }
+
+#endif

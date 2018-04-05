@@ -1,11 +1,11 @@
 CC = mpicc
 TARGET = pool
-CFLAGS = --std=c99 -Wall -Werror 
+CFLAGS = --std=c99 -Wall -Werror -O3
 INCLUDES = -I ./include
 LIBS = -lpthread -lm
 SRCS = $(wildcard src/*.c)
 HEADERS = $(wildcard src/*.c)
-RESULT_DIR = ppmresults logs
+RESULT_DIR = ppmresults log
 
 DEBUG = -D POOL_DEBUG
 DEBUG_DIR = dump

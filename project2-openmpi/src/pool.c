@@ -8,7 +8,10 @@
 #include "spec.h"
 #include "pfile.h"
 #include "pool.h"
+
+#ifdef POOL_DEBUG
 #include "logging.h"
+#endif
 
 /**
  * Pool and Velocity describing the current state of the board
@@ -92,7 +95,7 @@ int init_params(int rank, int argc, char *argv[], Spec *spec) {
             return -1;
         }
         if (read_spec_from_file(argv[1], spec)) {
-            ERR("read_spec_from_file failed");
+            fprintf(stderr, "read_spec_from_file failed\n");
             return -1;
         }
         memcpy(&cs, &spec->cs, sizeof(CompSpec));
@@ -295,7 +298,9 @@ int run_step(int rank, int size) {
     #endif
     // now we are going to update the velocity and location
     double t = cs.time_step;
+    #ifdef POOL_DEBUG
     INFO("Update velocity using vt = v0 + a * %.4f", t)
+    #endif
     for (int i = 0; i < pool.small_num; i++) {
         small_vel[i].vx += small_acc[i].ax * t;
         small_vel[i].vy += small_acc[i].ay * t;
@@ -315,7 +320,9 @@ int run_step(int rank, int size) {
     // need to ensure that particle information has been sent
     mympi_waitall(adj_num, ptc_send_req[0], MPI_STATUSES_IGNORE);
     mympi_waitall(adj_num, ptc_send_req[1], MPI_STATUSES_IGNORE);
+    #ifdef POOL_DEBUG
     INFO("Update location using x = vt * t + 0.5 * a * t * t")
+    #endif
     for (int i = 0; i < pool.small_num; i++) {
         pool.small_ptc[i].x += small_vel[i].vx * t + 0.5 * small_acc[i].ax * t * t;
         pool.small_ptc[i].y += small_vel[i].vy * t + 0.5 * small_acc[i].ay * t * t;
@@ -329,7 +336,7 @@ int run_step(int rank, int size) {
             pool.small_ptc[i].y += pool.size;
         #ifdef POOL_DEBUG
         if (i < 10) {
-            INFO("pool.small_ptc[i]: %.4f, %.4f", pool.small_ptc[i].x, pool.small_ptc[i].y);
+            INFO("pool.small_ptc[%d]: %.4f, %.4f", i, pool.small_ptc[i].x, pool.small_ptc[i].y);
         }
         #endif
     }
@@ -362,7 +369,7 @@ int run(int rank, int size, int argc, char *argv[]) {
     // initialize the game (CompSpec and Pool)
     Spec *spec = (Spec *)malloc(sizeof(Spec));
     if (init_params(rank, argc, argv, spec)){
-        ERR("init_params failed");
+        fprintf(stderr, "init_params failed\n");        
         return -1;
     }
     init_pool(rank, spec);
@@ -399,8 +406,10 @@ int run(int rank, int size, int argc, char *argv[]) {
     #endif
     // run time_slot steps on the pool
     for (int i = 0; i < cs.time_slot; i++) {
+        #ifdef POOL_DEBUG
         printf("Running step %d\n", i);
         INFO("Running step %d", i);
+        #endif
         run_step(rank, size);
         #ifdef POOL_DEBUG
         char debugppm[64];
@@ -418,7 +427,7 @@ int run(int rank, int size, int argc, char *argv[]) {
     char ppmfile[64];
     sprintf(ppmfile, "%s-%d.ppm", argv[2], rank);
     if (print2ppm(&pool, ppmfile)) {
-        ERR("print2ppm failed");        
+        fprintf(stderr, "print2ppm failed\n");
         return -1;
     }
     free(pool.small_ptc);
@@ -447,22 +456,27 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    #ifdef POOL_DEBUG
     time_t rawtime;
     time(&rawtime);
     struct tm *timeinfo = localtime(&rawtime);
-
     char logfile[64];
-    sprintf(logfile, "logs/log-%02d%02d%02d%02d%02d-%d.txt",
+    sprintf(logfile, "log/log-%02d%02d%02d%02d%02d-%d.txt",
             timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour,
             timeinfo->tm_min, timeinfo->tm_sec, rank);
     if (logging_open(logfile) < 0) {
         fprintf(stderr, "Failed to initialize logging\n");
         return EXIT_FAILURE;
     }
+    #endif
 
     init_mympi();
 
     int ret = run(rank, size, argc, argv);
+
+    #ifdef POOL_DEBUG
+    logging_close();
+    #endif
 
     MPI_Finalize();
     return ret;

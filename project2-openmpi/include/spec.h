@@ -96,6 +96,8 @@ typedef struct {
     GridSpec gs;
 } Spec;
 
+#ifdef POOL_DEBUG
+
 /**
  * print Spec to STDOUT (only for debug use)
  */
@@ -115,5 +117,7 @@ void __debug_print_location(int rank, const Location *loc, uint32_t count);
  * print an array of Particle to STDOUT (only for debug use)
  */
 void __debug_print_particle(int rank, const Particle *ptc, uint32_t count);
+
+#endif
 
 #endif

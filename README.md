@@ -19,3 +19,26 @@ platform, in a subset of Javascript, using `GPU.js` (the original GPU accelerate
 ## Project 2: Open MPI Programming
 
 Develop a simulation of a 2D version of a gigantic pool table, in one process, and then an Open MPI parallelized version. 
+
+### Expected Results
+
+Original board: 
+
+![Original board](project2-openmpi/example-results/finalbrd-debug-0-0.bmp)
+
+Board after 25 steps:
+
+![Original board](project2-openmpi/example-results/finalbrd-debug-0-25.bmp)
+
+Board after 50 steps:
+
+![Original board](project2-openmpi/example-results/finalbrd-debug-0-50.bmp)
+
+Board after 75 steps:
+
+![Original board](project2-openmpi/example-results/finalbrd-debug-0-75.bmp)
+
+Board after 100 steps (final result):
+
+![Original board](project2-openmpi/example-results/finalbrd-0.bmp)
+

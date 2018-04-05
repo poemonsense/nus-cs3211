@@ -100,7 +100,7 @@ typedef struct {
  * Gravatational constant for acceleration computation
  * To make the effect more notable, use 6.67 instead of 6.67*(10^-11)
  */
-#define __ACCEL_G_CONSTANT 66.7 //0.000000000066742
+#define __ACCEL_G_CONSTANT 6.67 //0.000000000066742
 
 #define ACCEL_RAW_TO_FINAL(acc) {  \
     acc.ax *= __ACCEL_G_CONSTANT;  \

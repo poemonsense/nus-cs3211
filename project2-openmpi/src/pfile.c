@@ -4,7 +4,10 @@
 
 #include "spec.h"
 #include "pfile.h"
+
+#ifdef POOL_DEBUG
 #include "logging.h"
+#endif
 
 int read_spec_from_file(const char *filename, Spec *spec) {
     FILE *spec_file = fopen(filename, "r");
@@ -14,36 +17,45 @@ int read_spec_from_file(const char *filename, Spec *spec) {
     }
     // buffer for reading every line of the file 
     char buf[MAX_SPECFILE_LINE_SIZE];
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+        return -1;
     spec->cs.time_slot = atoi(buf + TIME_SLOT_OFFSET);
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+        return -1;
     spec->cs.time_step = atof(buf + TIME_STEP_OFFSET);
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+        return -1;
     spec->cs.horizon = atoi(buf + HORIZON_OFFSET);
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+        return -1;
     spec->gs.size = atoi(buf + GRID_SIZE_OFFSET);
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+        return -1;
     spec->gs.small_num = atoi(buf + SMALL_PTC_NUM_OFFSET);
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+        return -1;
     spec->gs.small_mass = atof(buf + SMALL_PTC_MASS_OFFSET);
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+        return -1;
     spec->gs.small_rad = atof(buf + SAMLL_PTC_RAD_OFFSET);
-    fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+    if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+        return -1;
     spec->gs.large_num = atoi(buf + LARGE_PTC_NUM_OFFSET);
     spec->gs.large_ptc = (Particle *)calloc(spec->gs.large_num, sizeof(Particle));
     for (int i = 0; i < spec->gs.large_num; i++) {
-        fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file);
+        if (!fgets(buf, MAX_SPECFILE_LINE_SIZE, spec_file))
+            return -1;
         sscanf(buf, "%lf %lf %lf %lf", &spec->gs.large_ptc[i].rad, &spec->gs.large_ptc[i].mass, 
                 &spec->gs.large_ptc[i].loc.x, &spec->gs.large_ptc[i].loc.y);
     }
-    #ifdef PFILE_DEBUG
+    #ifdef POOL_DEBUG
     __debug_print_spec(-1, spec);
     #endif
     return 0;
 }
 
 int print2ppm(const Pool *pool, const char *path) {
-    #ifdef PFILE_DEBUG
+    #ifdef POOL_DEBUG
     INFO("Writing Pool at 0x%lx to ppm file %s", (uint64_t)pool, path)
     #endif
     FILE *ppm_file = fopen(path, "w");
@@ -87,16 +99,14 @@ int print2ppm(const Pool *pool, const char *path) {
         }
     }
     // write to ppm file
-    fprintf(ppm_file, "P3\n");
-    fprintf(ppm_file, "%d %d\n", pool->size, pool->size);
-    fprintf(ppm_file, "255\n");
+    fprintf(ppm_file, "P3\n%d %d\n255\n", pool->size, pool->size);
     for (uint32_t row = 0; row < pool->size; row++) {
         for (uint32_t col = 0; col < pool->size; col++) {
             uint32_t idx = row * pool->size + col;
             if (blue[idx])
                 fprintf(ppm_file, "%d %d %d\t", 0, 0, blue[idx]);
             else
-                fprintf(ppm_file, "%d %d %d\t", red[idx], 0, blue[idx]);
+                fprintf(ppm_file, "%d %d %d\t", (red[idx] > 0) ? 255: 0, 0, 0);
         }
         fprintf(ppm_file, "\n");
     }
