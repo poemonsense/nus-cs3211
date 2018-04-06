@@ -4,12 +4,13 @@
 #include "spec.h"
 #include "pool.h"
 #include "mpi.h"
-
+#include "pfile.h"
 
 MPI_Datatype CompSpecType;
 MPI_Datatype PoolType;
 MPI_Datatype LocationType;
 MPI_Datatype ParticleType;
+MPI_Datatype RGBPixelType;
 
 int init_mympi() {
     // register CompSpecType
@@ -49,6 +50,16 @@ int init_mympi() {
         return -1;
     }
     if (MPI_Type_commit(&ParticleType) != MPI_SUCCESS) {
+        fprintf(stderr, "[%s:%d] MPI_Type_commit failed\n", __FILE__, __LINE__);
+        return -1;
+    }
+    // register RGBPixelType
+    if (MPI_Type_create_struct(RGBPIXEL_COUNT, RGBPIXEL_BLOCK_LENGTH,
+            RGBPIXEL_DISPLACE, RGBPIXEL_ELEM_TYPES, &RGBPixelType) != MPI_SUCCESS) {
+        fprintf(stderr, "[%s:%d] MPI_Type_create_struct failed\n", __FILE__, __LINE__);
+        return -1;
+    }
+    if (MPI_Type_commit(&RGBPixelType) != MPI_SUCCESS) {
         fprintf(stderr, "[%s:%d] MPI_Type_commit failed\n", __FILE__, __LINE__);
         return -1;
     }

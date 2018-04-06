@@ -7,6 +7,7 @@ extern MPI_Datatype CompSpecType;
 extern MPI_Datatype PoolType;
 extern MPI_Datatype LocationType;
 extern MPI_Datatype ParticleType;
+extern MPI_Datatype RGBPixelType;
 
 int init_mympi();
 
@@ -22,6 +23,13 @@ int init_mympi();
 #define mympi_waitall(count, array_of_requests, array_of_statuses) \
     MPI_Waitall(count, array_of_requests, array_of_statuses)
 
-#define mympi_wait(request, status) MPI_Wait(request, status)
+#define mympi_wait(request, status) \
+    MPI_Wait(request, status)
+
+#define mympi_send(buf, count, datatype, dest, tag) \
+    MPI_Send(buf, count, datatype, dest, tag, MPI_COMM_WORLD)
+
+#define mympi_recv(buf, count, datatype, source, tag, status) \
+    MPI_Recv(buf, count, datatype, source, tag, MPI_COMM_WORLD, status)
 
 #endif

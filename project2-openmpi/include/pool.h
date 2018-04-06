@@ -118,11 +118,6 @@ typedef struct {
 } Velocity;
 
 int run(int rank, int size, int argc, char *argv[]);
-int run_step(int rank, int size);
-
-void init_pool(int rank, const Spec *spec);
-int init_params(int rank, int argc, char *argv[], Spec *spec);
-
 
 #ifdef POOL_DEBUG
 

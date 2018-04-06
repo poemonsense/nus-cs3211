@@ -51,6 +51,46 @@ void __debug_print_pool(int rank, const Pool *pool) {
 /**
  * Main purpose function definitions
  */
+int __is_perfect_square(int num);
+int run_step(int rank, int size);
+void init_pool(int rank, const Spec *spec);
+int init_params(int rank, int argc, char *argv[], Spec *spec);
+int get_final_result(int rank, int size, PPMFile *ppm);
+
+int get_final_result(int rank, int size, PPMFile *ppm) {
+    uint64_t rgb_num = pool.size * pool.size;
+    if (rank == 0) {
+        // assume every node has the same size of grid
+        ppm->size = pool.size * proc_size;
+        ppm->pixels = (RGBPixel *)calloc(ppm->size * ppm->size, sizeof(RGBPixel));
+        PPMFile temp;
+        if (pool2ppm(&pool, &temp)) {
+            #ifdef POOL_DEBUG
+            INFO("pool2ppm for rank %d failed", rank)
+            #endif
+            return -1;
+        }
+        MPI_Request recv[size];
+        memcpy(ppm->pixels, temp.pixels, sizeof(RGBPixel) * rgb_num);
+        RGBPixel *p = ppm->pixels;
+        for (int i = 1; i < size; i++) {
+            p += rgb_num;
+            mympi_irecv(p, rgb_num, RGBPixelType, i, i, &recv[i]);
+        }
+        mympi_waitall(size-1, recv+1, MPI_STATUSES_IGNORE);
+    }
+    else {
+        if (pool2ppm(&pool, ppm)) {
+            #ifdef POOL_DEBUG
+            INFO("pool2ppm for rank %d failed", rank)
+            #endif
+            return -1;
+        }
+        mympi_send(ppm->pixels, rgb_num, RGBPixelType, 0, rank);
+    }
+    return 0;
+}
+
 void init_pool(int rank, const Spec *spec) {
     if (rank == 0) {
         pool.size = spec->gs.size;
@@ -122,7 +162,9 @@ int run_step(int rank, int size) {
     MPI_Request num_send_req[2][adj_num], num_recv_req[2][adj_num];
     uint32_t snum[adj_num], lnum[adj_num];
     for (int i = 0; i < adj_num; i++) {
-        printf("Process %d: Communicate with %d\n", rank, adj_ranks[i]);
+        #ifdef POOL_DEBUG
+        INFO("Process %d: Communicate with %d", rank, adj_ranks[i])
+        #endif
         mympi_isend(&pool.small_num, 1, MPI_UINT32_T, adj_ranks[i], 2*rank,
             &num_send_req[0][i]);
         mympi_isend(&pool.large_num, 1, MPI_UINT32_T, adj_ranks[i], 2*rank+1,
@@ -424,11 +466,19 @@ int run(int rank, int size, int argc, char *argv[]) {
     free(small_vel);
     free(large_vel);
     // output results to ppm file
-    char ppmfile[64];
-    sprintf(ppmfile, "%s-%d.ppm", argv[2], rank);
-    if (print2ppm(&pool, ppmfile)) {
-        fprintf(stderr, "print2ppm failed\n");
+    PPMFile finalbrd;
+    if (get_final_result(rank, size, &finalbrd)) {
+        fprintf(stderr, "get_final_result failed\n");
         return -1;
+    }
+    if (rank == 0) {
+        char ppmfile[64];
+        sprintf(ppmfile, "%s-%d.ppm", argv[2], rank);
+        if (ppm2file(&finalbrd, ppmfile)) {
+            fprintf(stderr, "print2ppm failed\n");
+            return -1;
+        }
+        free(finalbrd.pixels);
     }
     free(pool.small_ptc);
     free(pool.large_ptc);
