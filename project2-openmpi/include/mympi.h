@@ -32,4 +32,7 @@ int init_mympi();
 #define mympi_recv(buf, count, datatype, source, tag, status) \
     MPI_Recv(buf, count, datatype, source, tag, MPI_COMM_WORLD, status)
 
+#define mympi_barrier() \
+    MPI_Barrier(MPI_COMM_WORLD);
+
 #endif

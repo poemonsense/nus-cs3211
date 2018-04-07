@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <time.h>
 
 #include "mympi.h"
@@ -447,6 +448,11 @@ int run(int rank, int size, int argc, char *argv[]) {
         INFO("adj_ranks[i] = %d", adj_ranks[i]);
     #endif
     // run time_slot steps on the pool
+    // note that we only count the iteration time
+    struct timeval tv1, tv2;    
+    if (rank == 0) {
+        gettimeofday(&tv1, NULL);
+    }
     for (int i = 0; i < cs.time_slot; i++) {
         #ifdef POOL_DEBUG
         printf("Running step %d\n", i);
@@ -461,6 +467,13 @@ int run(int rank, int size, int argc, char *argv[]) {
             return -1;
         }
         #endif
+    }
+    mympi_barrier();
+    if (rank == 0) {
+        gettimeofday(&tv2, NULL);
+        double excu_time = (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 +
+            (double)(tv2.tv_sec - tv1.tv_sec);
+        printf ("%.4f\n", excu_time);
     }
     // free the allocated space
     free(small_vel);
