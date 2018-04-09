@@ -26,11 +26,21 @@ if __name__ == "__main__":
     os.system("cp spec.txt spec_backup.txt")
     try:
         with open("speedup.txt", "w+") as resFile:
-            for gridSize in [10, 50, 100, 150, 200, 300, 500]:
-                for smallNum in [50, 100, 1000, 5000, 10000, 20000, 50000]:
+            for horizon in [0,1,2,3]:
+                for smallNum in [50, 100, 1000, 5000, 10000]:
                     for np in [1, 4, 9, 16, 25, 36, 49, 64]:
-                        with open("spec.txt", "w+") as spec:
-                            spec.write(makespec(gridSize=gridSize, smallNum=smallNum, 
+                        with open("spec.txt", "w+", 1) as spec:
+                            spec.write(makespec(horizon=horizon, smallNum=smallNum, 
+                                    largeNum=4, largePtc=largePtc))
+                        excuTime = os.popen('./run.sh {}'.format(np)).read().strip()
+                        res = "{}, {}, {}, {}\n".format(gridSize, smallNum, np, excuTime)
+                        resFile.write(res)
+                        print(res)
+            horizon = [0,1,2,3]
+            np = 16
+            for smallNum in [20000,50000]:
+                with open("spec.txt", "w+", 1) as spec:
+                            spec.write(makespec(horizon=horizon, smallNum=smallNum, 
                                     largeNum=4, largePtc=largePtc))
                         excuTime = os.popen('./run.sh {}'.format(np)).read().strip()
                         res = "{}, {}, {}, {}\n".format(gridSize, smallNum, np, excuTime)
