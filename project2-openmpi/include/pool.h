@@ -2,6 +2,7 @@
 #define POOL_H
 
 // #define POOL_DEBUG
+// #define POOL_SEQ
 
 #include <stdint.h>
 #include "spec.h"
@@ -117,7 +118,12 @@ typedef struct {
     Vel_t vy;
 } Velocity;
 
+
+#ifdef POOL_SEQ
+int run(int argc, char *argv[]);
+#else
 int run(int rank, int size, int argc, char *argv[]);
+#endif
 
 #ifdef POOL_DEBUG
 

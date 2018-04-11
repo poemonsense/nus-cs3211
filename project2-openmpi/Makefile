@@ -1,14 +1,21 @@
-CC = mpicc
+
+
+MPICC = mpicc
 TARGET = pool
 CFLAGS = --std=c99 -Wall -Werror -O3
 INCLUDES = -I ./include
 LIBS = -lpthread -lm
-SRCS = $(wildcard src/*.c)
-HEADERS = $(wildcard src/*.c)
+SRCS := $(wildcard src/*.c)
+MPI_SRCS := $(filter-out src/poolseq.c, $(SRCS))
+SEQ_SRCS := $(filter-out src/pool.c, $(SRCS))
+HEADERS := $(wildcard include/*.c)
 RESULT_DIR = ppmresults log
 
-DEBUG = -D POOL_DEBUG
+DEBUG_FLAG = -D POOL_DEBUG
 DEBUG_DIR = dump
+
+CC = gcc
+SEQ_FALGS = -D POOL_SEQ
 
 PPMFILES = $(wildcard ppmresults/*.ppm)
 PPM2BMP = ppmtobmp
@@ -16,13 +23,22 @@ BMPDIR = bmpresults
 
 all: pool
 
-pool: $(HEADERS) $(SRCS)
+pool: $(HEADERS) $(MPI_SRCS)
 	mkdir -p $(RESULT_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(SRCS) $(LIBS) 
+	$(MPICC) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(MPI_SRCS) $(LIBS) 
 
-debug: $(HEADERS) $(SRCS)
+debug: $(HEADERS) $(MPI_SRCS)
 	mkdir -p $(DEBUG_DIR) $(RESULT_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) $(DEBUG) -o $(TARGET) $(SRCS) $(LIBS)
+	$(MPICC) $(CFLAGS) $(INCLUDES) $(DEBUG_FLAG) -o $(TARGET) $(MPI_SRCS) $(LIBS)
+	objdump -D $(TARGET) > dump/$(TARGET).dump
+
+seq: $(HEADERS) $(SEQ_SRCS)
+	mkdir -p $(RESULT_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $(SEQ_FALGS) -o $(TARGET) $(SEQ_SRCS) $(LIBS) 
+
+seqdebug: $(HEADERS) $(SEQ_SRCS)
+	mkdir -p $(DEBUG_DIR) $(RESULT_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $(DEBUG_FLAG) $(SEQ_FALGS) -o $(TARGET) $(SEQ_SRCS) $(LIBS)
 	objdump -D $(TARGET) > dump/$(TARGET).dump
 
 bmp: $(PPMFILES)
