@@ -6,7 +6,10 @@
 
 #include <stdint.h>
 #include "spec.h"
+
+#ifndef POOL_SEQ
 #include "mpi.h"
+#endif
 
 typedef struct {
     uint32_t  size;
@@ -18,6 +21,7 @@ typedef struct {
     Particle *large_ptc;
 } Pool;
 
+#ifndef POOL_SEQ
 static const int POOL_COUNT = 5;
 static const int POOL_BLOCK_LENGTH[] = {1, 1, 1, 1, 1, 1};
 static const MPI_Aint POOL_DISPLACE[] = {
@@ -30,6 +34,7 @@ static const MPI_Aint POOL_DISPLACE[] = {
 static const MPI_Datatype POOL_ELEM_TYPES[] = {
     MPI_UINT32_T, MPI_UINT32_T, MPI_DOUBLE, MPI_DOUBLE, MPI_UINT32_T
 };
+#endif
 
 /**
  * describing the Acceleration of a particle, which doesn't need to be 

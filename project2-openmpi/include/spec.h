@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#ifndef POOL_SEQ
 #include "mpi.h"
+#endif
 
 typedef double Radius;
 typedef double Mass;
@@ -19,6 +21,7 @@ typedef struct {
 /**
  * Definitions for MPI DataType of Location
  */
+#ifndef POOL_SEQ
 static const int LOCATION_COUNT = 2;
 static const int LOCATION_BLOCK_LENGTH[] = {1, 1};
 static const MPI_Aint LOCATION_DISPLACE[] = {
@@ -28,6 +31,7 @@ static const MPI_Aint LOCATION_DISPLACE[] = {
 static const MPI_Datatype LOCATION_ELEM_TYPES[] = {
     MPI_DOUBLE, MPI_DOUBLE
 };
+#endif
 
 /**
  * Define the information for a particle on the pool
@@ -41,6 +45,7 @@ typedef struct {
 /**
  * Definitions for MPI DataType of Particle
  */
+#ifndef POOL_SEQ
 static const int PARTICLE_COUNT = 4;
 static const int PARTICLE_BLOCK_LENGTH[] = {1, 1, 1, 1};
 static const MPI_Aint PARTICLE_DISPLACE[] = {
@@ -52,6 +57,7 @@ static const MPI_Aint PARTICLE_DISPLACE[] = {
 static const MPI_Datatype PARTICLE_ELEM_TYPES[] = {
     MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE
 };
+#endif
 
 /**
  * Define the specification for a Grid
@@ -77,6 +83,7 @@ typedef struct {
 /**
  * Definitions for MPI DataType of CompSpec
  */
+#ifndef POOL_SEQ
 static const int COMPSPEC_COUNT = 3;
 static const int COMPSPEC_BLOCK_LENGTH[] = {1, 1, 1};
 static const MPI_Aint COMPSPEC_DISPLACE[] = {
@@ -87,6 +94,7 @@ static const MPI_Aint COMPSPEC_DISPLACE[] = {
 static const MPI_Datatype COMPSPEC_ELEM_TYPES[] = {
     MPI_INT, MPI_FLOAT, MPI_INT
 };
+#endif
 
 /**
  * Define the specification for one run

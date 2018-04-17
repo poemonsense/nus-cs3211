@@ -3,7 +3,10 @@
 
 #include "spec.h"
 #include "pool.h"
+
+#ifndef POOL_SEQ
 #include "mympi.h"
+#endif
 
 #define MAX_SPECFILE_LINE_SIZE 64
 
@@ -24,9 +27,11 @@ typedef struct {
     uint8_t g;
     uint8_t b;
 } RGBPixel;
+
 /**
  * Definitions for MPI DataType of RGBPixel
  */
+#ifndef POOL_SEQ
 static const int RGBPIXEL_COUNT = 3;
 static const int RGBPIXEL_BLOCK_LENGTH[] = {1, 1, 1};
 static const MPI_Aint RGBPIXEL_DISPLACE[] = {
@@ -37,11 +42,14 @@ static const MPI_Aint RGBPIXEL_DISPLACE[] = {
 static const MPI_Datatype RGBPIXEL_ELEM_TYPES[] = {
     MPI_UINT8_T, MPI_UINT8_T, MPI_UINT8_T
 };
+#endif
 
 typedef struct {
     uint64_t size;
     RGBPixel *pixels;
 } PPMFile;
+
+#ifndef POOL_SEQ
 static const int PPMFILE_COUNT = 1;
 static const int PPMFILE_BLOCK_LENGTH[] = {1};
 static const MPI_Aint PPMFILE_DISPLACE[] = {
@@ -50,6 +58,7 @@ static const MPI_Aint PPMFILE_DISPLACE[] = {
 static const MPI_Datatype PPMFILE_ELEM_TYPES[] = {
     MPI_UINT64_T
 };
+#endif
 
 int read_spec_from_file(const char *filename, Spec *pool);
 int print2ppm(const Pool *pool, const char *path);

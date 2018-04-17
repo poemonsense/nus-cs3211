@@ -7,7 +7,7 @@ INCLUDES = -I ./include
 LIBS = -lpthread -lm
 SRCS := $(wildcard src/*.c)
 MPI_SRCS := $(filter-out src/poolseq.c, $(SRCS))
-SEQ_SRCS := $(filter-out src/pool.c, $(SRCS))
+SEQ_SRCS := $(filter-out src/pool.c src/mympi.c, $(SRCS))
 HEADERS := $(wildcard include/*.c)
 RESULT_DIR = ppmresults log
 
@@ -29,7 +29,7 @@ pool: $(HEADERS) $(MPI_SRCS)
 
 debug: $(HEADERS) $(MPI_SRCS)
 	mkdir -p $(DEBUG_DIR) $(RESULT_DIR)
-	$(MPICC) $(CFLAGS) $(INCLUDES) $(DEBUG_FLAG) -o $(TARGET) $(MPI_SRCS) $(LIBS)
+	$(MPICC) $(CFLAGS) -g $(INCLUDES) $(DEBUG_FLAG) -o $(TARGET) $(MPI_SRCS) $(LIBS)
 	objdump -D $(TARGET) > dump/$(TARGET).dump
 
 seq: $(HEADERS) $(SEQ_SRCS)
@@ -38,7 +38,7 @@ seq: $(HEADERS) $(SEQ_SRCS)
 
 seqdebug: $(HEADERS) $(SEQ_SRCS)
 	mkdir -p $(DEBUG_DIR) $(RESULT_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) $(DEBUG_FLAG) $(SEQ_FALGS) -o $(TARGET) $(SEQ_SRCS) $(LIBS)
+	$(CC) $(CFLAGS) -g $(INCLUDES) $(DEBUG_FLAG) $(SEQ_FALGS) -o $(TARGET) $(SEQ_SRCS) $(LIBS)
 	objdump -D $(TARGET) > dump/$(TARGET).dump
 
 bmp: $(PPMFILES)

@@ -418,14 +418,14 @@ int run(int rank, int size, int argc, char *argv[]) {
     init_pool(rank, spec);
     // free the allocated space
     // only in rank 0 have we initialized spec.gs in spec
-    if (rank == 0)
-        free(spec->gs.large_ptc);
-    free(spec);
-    // allocate space for velocity
     #ifdef POOL_DEBUG
     INFO("Allocate small_vel and large_vel with size of %u, %u",
         spec->gs.small_num, spec->gs.large_num)
     #endif
+    if (rank == 0)
+        free(spec->gs.large_ptc);
+    free(spec);
+    // allocate space for velocity
     small_vel = (Velocity *)calloc(pool.small_num, sizeof(Velocity));
     large_vel = (Velocity *)calloc(pool.large_num, sizeof(Velocity));
     memset(small_vel, 0, pool.small_num * sizeof(Velocity));
