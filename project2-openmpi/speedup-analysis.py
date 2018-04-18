@@ -20,11 +20,11 @@ NumberOfLargeParticles: {NumberOfLargeParticles}
         ptcs = map(lambda x : [str(y) for y in x], largePtc)
         return spec + '\n'.join([' '.join(ptc) for ptc in ptcs])
 
-if __name__ == "__main__":
-    os.system("make clean && make")
-    largePtc = [[8,1.5,56.5,70.21],[6,1,156,20.1],[12,3.1,20,30],[8,1.7,180,90]]
-    os.system("cp spec.txt spec_backup.txt")
-    try:
+def testSpeedUp():
+    try:    
+        os.system("make clean && make")
+        os.system("cp spec.txt spec_backup.txt")
+        largePtc = [[8,1.5,56.5,70.21],[6,1,156,20.1],[12,3.1,20,30],[8,1.7,180,90]]
         with open("speedup.txt", "w+", 1) as resFile:
             for horizon in [0,1,2,3]:
                 for smallNum in [50, 100, 1000, 5000, 10000]:
@@ -50,3 +50,30 @@ if __name__ == "__main__":
         os.system("mv ppmresults results")
         os.system("make clean")
         os.system("mv spec_backup.txt spec.txt")
+
+def testSequential():
+    try:    
+        os.system("make clean && make seq")
+        os.system("cp spec.txt spec_backup.txt")
+        largePtc = [[8,1.5,56.5,70.21],[6,1,156,20.1],[12,3.1,20,30],[8,1.7,180,90]]
+        with open("speedup.txt", "w+", 1) as resFile:
+            for horizon in [0,1,2,3]:
+                for smallNum in [10000]:
+                    for np in [1, 4, 9, 16, 25, 36, 49, 64]:
+                        with open("spec.txt", "w+", 1) as spec:
+                            spec.write(makespec(horizon=horizon, smallNum=smallNum, 
+                                    largeNum=4, largePtc=largePtc))
+                        excuTime = os.popen('./seqrun.sh {}'.format(np)).read().strip()
+                        res = "{}, {}, {}, {}\n".format(horizon, smallNum, np, excuTime)
+                        resFile.write(res)
+                        print(res)
+    except KeyboardInterrupt:
+        os.system("mv ppmresults results")
+        os.system("make clean")
+        os.system("mv spec_backup.txt spec.txt")
+
+if __name__ == "__main__":
+    # testSpeedUp()
+    testSequential()
+    
+    

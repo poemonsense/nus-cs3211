@@ -26,7 +26,7 @@ Velocity **small_vel, **large_vel;
  * CompSpec for current computation
  */
 CompSpec cs;
-int *adj_ranks[9];
+int **adj_ranks;
 int *adj_num;
 int proc_size;
 int np;
@@ -358,7 +358,9 @@ int run(int argc, char *argv[]) {
     // now begins the main computation
     // set the adjacent regions that need to be considered
     adj_num = (int *)calloc(np, sizeof(int));
+    adj_ranks = (int **)calloc(np, sizeof(int *));
     for (int rank = 0; rank < np; rank++) {
+        adj_ranks[rank] = (int *)calloc(9, sizeof(int));
         int row = rank / proc_size, col = rank % proc_size;
         adj_num[rank] = 0;
         for (int i = row - cs.horizon; i <= row + cs.horizon; i++) {
@@ -408,9 +410,12 @@ int run(int argc, char *argv[]) {
     for (int i = 0; i < np; i++) {
         free(small_vel[i]);
         free(large_vel[i]);
+        free(adj_ranks[i]);
     }
     free(small_vel);
     free(large_vel);
+    free(adj_num);
+    free(adj_ranks);
     // output results to ppm file
     PPMFile finalbrd;
     if (get_final_result(&finalbrd)) {
