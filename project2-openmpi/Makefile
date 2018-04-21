@@ -1,5 +1,3 @@
-
-
 MPICC = mpicc
 TARGET = pool
 CFLAGS = --std=c99 -Wall -Werror -O3
@@ -16,6 +14,9 @@ DEBUG_DIR = dump
 
 CC = gcc
 SEQ_FALGS = -D POOL_SEQ
+
+PROFILECC = vtcc -vt:cc mpicc
+NAMEMAP = nm
 
 PPMFILES = $(wildcard ppmresults/*.ppm)
 PPM2BMP = ppmtobmp
@@ -41,6 +42,11 @@ seqdebug: $(HEADERS) $(SEQ_SRCS)
 	$(CC) $(CFLAGS) -g $(INCLUDES) $(DEBUG_FLAG) $(SEQ_FALGS) -o $(TARGET) $(SEQ_SRCS) $(LIBS)
 	objdump -D $(TARGET) > dump/$(TARGET).dump
 
+profile: $(HEADERS) $(SEQ_SRCS)
+	mkdir -p $(RESULT_DIR)
+	$(PROFILECC) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(MPI_SRCS) $(LIBS) 
+	$(NAMEMAP) $(TARGET) > $(TARGET).nm
+
 bmp: $(PPMFILES)
 	mkdir -p bmpresults
 ifeq ($(notdir $(shell which $(PPM2BMP))), $(PPM2BMP))
@@ -48,4 +54,4 @@ ifeq ($(notdir $(shell which $(PPM2BMP))), $(PPM2BMP))
 endif
 
 clean:
-	rm -f -r $(TARGET) $(DEBUG_DIR) $(RESULT_DIR) $(BMPDIR)
+	rm -f -r $(TARGET) $(DEBUG_DIR) $(RESULT_DIR) $(BMPDIR) $(TARGET).nm

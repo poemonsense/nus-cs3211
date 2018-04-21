@@ -27,7 +27,7 @@ Velocity *small_vel, *large_vel;
  * CompSpec for current computation
  */
 CompSpec cs;
-int adj_ranks[50];
+int adj_ranks[9];
 int adj_num = 0;
 int proc_size;
 
@@ -103,8 +103,8 @@ void init_pool(int rank, const Spec *spec) {
         pool.small_ptc = (Location *)calloc(num, sizeof(Location));
         srand(time(NULL));
         for (int i = 0, max = pool.size; i < num; i++) {
-            pool.small_ptc[i].x = ((double)rand() / RAND_MAX) * max;
-            pool.small_ptc[i].y = ((double)rand() / RAND_MAX) * max;
+            pool.small_ptc[i].x = ((float)rand() / RAND_MAX) * max;
+            pool.small_ptc[i].y = ((float)rand() / RAND_MAX) * max;
         }
         // initialize large paticles
         num = pool.large_num = spec->gs.large_num;
@@ -211,14 +211,14 @@ int run_step(int rank, int size) {
     #endif
     MPI_Request ptc_send_req[2][adj_num], ptc_recv_req[2][adj_num];
     for (int i = 0; i < adj_num; i++) {
-        mympi_isend(pool.large_ptc, pool.large_num, ParticleType,
-            adj_ranks[i], 2*rank+1, &ptc_send_req[1][i]);
         mympi_isend(pool.small_ptc, pool.small_num, LocationType,
             adj_ranks[i], 2*rank, &ptc_send_req[0][i]);
-        mympi_irecv(adj_large_ptc[i], lnum[i], ParticleType, adj_ranks[i],
-            2*adj_ranks[i]+1, &ptc_recv_req[1][i]);
+        mympi_isend(pool.large_ptc, pool.large_num, ParticleType,
+            adj_ranks[i], 2*rank+1, &ptc_send_req[1][i]);
         mympi_irecv(adj_small_ptc[i], snum[i], LocationType, adj_ranks[i],
             2*adj_ranks[i], &ptc_recv_req[0][i]);
+        mympi_irecv(adj_large_ptc[i], lnum[i], ParticleType, adj_ranks[i],
+            2*adj_ranks[i]+1, &ptc_recv_req[1][i]);
     }
     // compute impacts of the region itself and wait for communication to finish
     #ifdef POOL_DEBUG
@@ -259,9 +259,9 @@ int run_step(int rank, int size) {
     // compute the impacts of adjacent regions
     for (int i = 0; i < adj_num; i++) {
         // compute the offset of two adjacent regions
-        double offset[2] = {
-            ((adj_ranks[i] % proc_size) - (rank % proc_size)) * (double)pool.size,
-            ((adj_ranks[i] / proc_size) - (rank / proc_size)) * (double)pool.size            
+        float offset[2] = {
+            ((adj_ranks[i] % proc_size) - (rank % proc_size)) * (float)pool.size,
+            ((adj_ranks[i] / proc_size) - (rank / proc_size)) * (float)pool.size            
         };
         #ifdef POOL_DEBUG
         INFO("compute region %d's impact, offset = { %.4f, %.4f }",
@@ -340,7 +340,7 @@ int run_step(int rank, int size) {
     }
     #endif
     // now we are going to update the velocity and location
-    double t = cs.time_step;
+    float t = cs.time_step;
     #ifdef POOL_DEBUG
     INFO("Update velocity using vt = v0 + a * %.4f", t)
     #endif
@@ -471,16 +471,15 @@ int run(int rank, int size, int argc, char *argv[]) {
     mympi_barrier();
     if (rank == 0) {
         gettimeofday(&tv2, NULL);
-        double excu_time = (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 +
-            (double)(tv2.tv_sec - tv1.tv_sec);
+        float excu_time = (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 +
+            (float)(tv2.tv_sec - tv1.tv_sec);
         printf ("%.4f\n", excu_time);
     }
     // free the allocated space
     free(small_vel);
     free(large_vel);
     // output results to ppm file
-    // we comment these lines when profiling the program
-    PPMFile finalbrd;
+    /*PPMFile finalbrd;
     if (get_final_result(rank, size, &finalbrd)) {
         fprintf(stderr, "get_final_result failed\n");
         return -1;
@@ -493,14 +492,14 @@ int run(int rank, int size, int argc, char *argv[]) {
             return -1;
         }
         free(finalbrd.pixels);
-    }
+    }*/
     free(pool.small_ptc);
     free(pool.large_ptc);
     return 0;
 }
 
 int __is_perfect_square(int num) {
-    int sqrt_rank = (int)round(sqrt((double)num));
+    int sqrt_rank = (int)round(sqrt((float)num));
     for (int i = 1; i <= sqrt_rank; i++)
         if (i * i == num)
             return i;

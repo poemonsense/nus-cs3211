@@ -20,8 +20,7 @@
 #define LARGE_PTC_NUM_OFFSET  24
 
 /**
- * Structure describing one pixel in ppm files in RGB format, 
- * including red, green and blue channel. 
+ * Definition of a pixel in PPM file in RGB format
  */
 typedef struct {
     uint8_t r;
@@ -45,11 +44,6 @@ static const MPI_Datatype RGBPIXEL_ELEM_TYPES[] = {
 };
 #endif
 
-
-/**
- * Structure describing a ppm file, including size (width and height) of
- * the photo and pixels (stored row by row). 
- */
 typedef struct {
     uint64_t size;
     RGBPixel *pixels;
@@ -66,38 +60,9 @@ static const MPI_Datatype PPMFILE_ELEM_TYPES[] = {
 };
 #endif
 
-
-/**
- * Read specification from a file in the format as shown in Hugh's PDF. 
- * spec needs to be allocated first but spec->gs.large_ptc will 
- * be allocated dynamically according to the input specification file. 
- * Returns non-zero numbers when failure. 
- */
-int read_spec_from_file(const char *filename, Spec *spec);
-
-
-/**
- * Output pool into a ppm file whose path is specified by path. 
- * path needs to be a directory. 
- * Returns non-zero numbers when failure. 
- */
+int read_spec_from_file(const char *filename, Spec *pool);
 int print2ppm(const Pool *pool, const char *path);
-
-
-/**
- * Output ppm to file whose path is specified by path. 
- * path needs to be a directory. 
- * Returns non-zero numbers when failure. 
- */
 int ppm2file(const PPMFile *ppm, const char *path);
-
-
-/**
- * Convert pool into ppm format stored in memory. 
- * ppm needs to be allocated first but ppm->pixels will 
- * be allocated dynamically according to size of the pool. 
- * Returns non-zero numbers when failure. 
- */
 int pool2ppm(const Pool *pool, PPMFile *ppm);
 
 #endif

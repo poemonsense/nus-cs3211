@@ -11,26 +11,13 @@
 #include "mpi.h"
 #endif
 
-
-/**
- * Structure describing the pool table, including size (also width and height), 
- * number of small particles, mass, radius of small particles, number of large particles, 
- * location of every small particle and information on every large particle. 
- */
 typedef struct {
-    /* size of the pool table       */
     uint32_t  size;
-    /* number of small particles    */
     uint32_t  small_num;
-    /* mass of small particles      */
     Mass      small_mass;
-    /* radius of small particles    */
     Radius    small_rad;
-    /* number of large particles    */
     uint32_t  large_num;
-    /* locations of small particles */
     Location *small_ptc;
-    /* info about large particles, including mass, radius, positions., position.y  */
     Particle *large_ptc;
 } Pool;
 
@@ -45,7 +32,7 @@ static const MPI_Aint POOL_DISPLACE[] = {
     offsetof(Pool, large_num)
 };
 static const MPI_Datatype POOL_ELEM_TYPES[] = {
-    MPI_UINT32_T, MPI_UINT32_T, MPI_DOUBLE, MPI_DOUBLE, MPI_UINT32_T
+    MPI_UINT32_T, MPI_UINT32_T, MPI_FLOAT, MPI_FLOAT, MPI_UINT32_T
 };
 #endif
 
@@ -53,7 +40,7 @@ static const MPI_Datatype POOL_ELEM_TYPES[] = {
  * describing the Acceleration of a particle, which doesn't need to be 
  * transferred between processes
  */
-typedef double Accel_t;
+typedef float Accel_t;
 typedef struct {
     Accel_t ax;
     Accel_t ay;
@@ -65,15 +52,15 @@ typedef struct {
  * Need to ensure that no name crashes in the local scope
  * 
  * vec: Location
- * mass1, mass2: double
+ * mass1, mass2: float
  * acc1, acc2: Accel
  */
 /* #define COMPUTE_ACCEL_2PTC_RAW(vec, mass1, mass2, acc1, acc2) {    \
-    double __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
-    double __accel_dist = sqrt(__accel_dist_sqr);             \
-    double __accel_den = __accel_dist * __accel_dist_sqr;     \
-    double __accel_const_1 = mass2 / __accel_den;             \
-    double __accel_const_2 = mass1 / __accel_den;             \
+    float __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
+    float __accel_dist = sqrt(__accel_dist_sqr);             \
+    float __accel_den = __accel_dist * __accel_dist_sqr;     \
+    float __accel_const_1 = mass2 / __accel_den;             \
+    float __accel_const_2 = mass1 / __accel_den;             \
     acc1.ax += __accel_const_1 * vec.x;                       \
     acc1.ay += __accel_const_1 * vec.y;                       \
     acc2.ax -= __accel_const_2 * vec.x;                       \
@@ -81,9 +68,9 @@ typedef struct {
     } */
 
 #define COMPUTE_ACCEL_2PTC_RAW(vec, mass1, mass2, acc1, acc2) {    \
-    double __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
-    double __accel_const_1 = mass2 / __accel_dist_sqr;        \
-    double __accel_const_2 = mass1 / __accel_dist_sqr;        \
+    float __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
+    float __accel_const_1 = mass2 / __accel_dist_sqr;        \
+    float __accel_const_2 = mass1 / __accel_dist_sqr;        \
     acc1.ax += __accel_const_1 * vec.x;                       \
     acc1.ay += __accel_const_1 * vec.y;                       \
     acc2.ax -= __accel_const_2 * vec.x;                       \
@@ -96,21 +83,21 @@ typedef struct {
  * Need to ensure that no name crashes in the local scope
  * 
  * vec: Location
- * mass1, mass2: double
+ * mass1, mass2: float
  * acc1, acc2: Accel
  */
 /* #define COMPUTE_ACCEL_RAW(vec, mass2, acc1) {    \
-    double __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
-    double __accel_dist = sqrt(__accel_dist_sqr);             \
-    double __accel_den = __accel_dist * __accel_dist_sqr;     \
-    double __accel_const_1 = mass2 / __accel_den;             \
+    float __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
+    float __accel_dist = sqrt(__accel_dist_sqr);             \
+    float __accel_den = __accel_dist * __accel_dist_sqr;     \
+    float __accel_const_1 = mass2 / __accel_den;             \
     acc1.ax += __accel_const_1 * vec.x;                       \
     acc1.ay += __accel_const_1 * vec.y;                       \
     } */
 
 #define COMPUTE_ACCEL_RAW(vec, mass2, acc1) {    \
-    double __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
-    double __accel_const_1 = mass2 / __accel_dist_sqr;        \
+    float __accel_dist_sqr = vec.x * vec.x + vec.y * vec.y;  \
+    float __accel_const_1 = mass2 / __accel_dist_sqr;        \
     acc1.ax += __accel_const_1 * vec.x;                       \
     acc1.ay += __accel_const_1 * vec.y;                       \
     }
@@ -127,19 +114,16 @@ typedef struct {
     }
 
 /**
- * Describing the Velocity of a particle, which doesn't need to be 
+ * describing the Velocity of a particle, which doesn't need to be 
  * transferred between processes
  */
-typedef double Vel_t;
+typedef float Vel_t;
 typedef struct {
     Vel_t vx;
     Vel_t vy;
 } Velocity;
 
 
-/**
- * Running the simulation, which begins with reading specification files. 
- */
 #ifdef POOL_SEQ
 int run(int argc, char *argv[]);
 #else

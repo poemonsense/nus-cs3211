@@ -3,29 +3,14 @@
 
 #include "mpi.h"
 
-
-/**
- * MPI datatype for CompSpec, Pool, Location, Particle and RGBPixel. 
- * Unregistered before calling init_mympi. 
- */
 extern MPI_Datatype CompSpecType;
 extern MPI_Datatype PoolType;
 extern MPI_Datatype LocationType;
 extern MPI_Datatype ParticleType;
 extern MPI_Datatype RGBPixelType;
 
-
-/**
- * Initizalize mympi environment, which includes self-defined MPI datatypes for simulation. 
- * Returns non-zero numbers if failed. 
- */
 int init_mympi();
 
-
-/** 
- * Wrapper functions for MPI_Bcast, MPI_Isend, MPI_Irecv, MPI_Waitall, 
- * MPI_Wait, MPI_Send, MPI_Recv, MPI_Barrier, where comm is defined as MPI_COMM_WORLD.
- */
 #define mympi_bcast(buf, count, datatype, root) \
     MPI_Bcast(buf, count, datatype, root, MPI_COMM_WORLD);
 

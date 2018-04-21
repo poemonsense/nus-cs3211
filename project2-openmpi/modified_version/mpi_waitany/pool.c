@@ -27,7 +27,7 @@ Velocity *small_vel, *large_vel;
  * CompSpec for current computation
  */
 CompSpec cs;
-int adj_ranks[50];
+int adj_ranks[64];
 int adj_num = 0;
 int proc_size;
 
@@ -257,7 +257,9 @@ int run_step(int rank, int size) {
         }
     }
     // compute the impacts of adjacent regions
-    for (int i = 0; i < adj_num; i++) {
+    int i;
+    while (!MPI_Waitany(adj_num, ptc_recv_req[1], &i, MPI_STATUS_IGNORE) && i != MPI_UNDEFINED) {
+    //for (int i = 0; i < adj_num; i++) {
         // compute the offset of two adjacent regions
         double offset[2] = {
             ((adj_ranks[i] % proc_size) - (rank % proc_size)) * (double)pool.size,
@@ -270,7 +272,7 @@ int run_step(int rank, int size) {
         // compute adj_large_ptc[i][j]'s impact
         // compute large ones first since there should be fewer large particles
         // which take less time to communicate
-        mympi_wait(&ptc_recv_req[1][i], MPI_STATUS_IGNORE);
+        // mympi_wait(&ptc_recv_req[1][i], MPI_STATUS_IGNORE);
         for (int j = 0; j < lnum[i]; j++) {
             #ifdef POOL_DEBUG
             INFO("Process %d large_ptc[%d].loc: %.4f, %.4f", adj_ranks[i],
@@ -293,8 +295,14 @@ int run_step(int rank, int size) {
                 COMPUTE_ACCEL_RAW(r_kj, adj_large_ptc[i][j].mass, large_acc[k])
             }
         }
-        // compute adj_small_ptc[i][j]'s impact
-        mympi_wait(&ptc_recv_req[0][i], MPI_STATUS_IGNORE);
+    }
+    while (!MPI_Waitany(adj_num, ptc_recv_req[0], &i, MPI_STATUS_IGNORE) && i != MPI_UNDEFINED) {
+    // compute adj_small_ptc[i][j]'s impact
+        //mympi_wait(&ptc_recv_req[0][i], MPI_STATUS_IGNORE);
+        double offset[2] = {
+            ((adj_ranks[i] % proc_size) - (rank % proc_size)) * (double)pool.size,
+            ((adj_ranks[i] / proc_size) - (rank / proc_size)) * (double)pool.size            
+        };
         for (int j = 0; j < snum[i]; j++) {
             #ifdef POOL_DEBUG
             if (j < 10)
@@ -479,7 +487,6 @@ int run(int rank, int size, int argc, char *argv[]) {
     free(small_vel);
     free(large_vel);
     // output results to ppm file
-    // we comment these lines when profiling the program
     PPMFile finalbrd;
     if (get_final_result(rank, size, &finalbrd)) {
         fprintf(stderr, "get_final_result failed\n");
